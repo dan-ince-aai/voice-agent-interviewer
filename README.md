@@ -114,13 +114,32 @@ For deeper customisation, `voice-agent-client.ts` exposes an `onEvent` hook that
 
 ## Deploying
 
+The app is a stock Next.js 15 server with one API route. Any host that runs Node.js 20+ works. Below are one-click and CLI flows for the two cleanest options.
+
+In every case you need to set **one** environment variable:
+
+```
+ASSEMBLYAI_API_KEY=<your-key>
+```
+
+### Railway
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new)
+
+1. Click **Deploy on Railway** above (or `railway init` from the CLI).
+2. Connect your GitHub fork or this repo.
+3. Add `ASSEMBLYAI_API_KEY` under the service's **Variables** tab.
+4. Railway picks up `railway.json` automatically — Nixpacks builds with `npm run build` and serves with `npm start` on the auto-assigned `PORT`.
+
+The first deploy takes about a minute. You'll get an `*.up.railway.app` URL with HTTPS, which is required for `getUserMedia` in any modern browser.
+
 ### Vercel
 
 ```bash
 vercel deploy
 ```
 
-Add `ASSEMBLYAI_API_KEY` as an environment variable in your Vercel project settings.
+Add `ASSEMBLYAI_API_KEY` in your Vercel project's **Settings → Environment Variables**, then redeploy.
 
 ### Self-hosted
 
@@ -129,11 +148,12 @@ npm run build
 npm start
 ```
 
-The app needs:
+You need:
 
 - Node.js 20+
-- The `ASSEMBLYAI_API_KEY` env var set at runtime
+- `ASSEMBLYAI_API_KEY` set at runtime
 - HTTPS in production (browsers require it for `getUserMedia`)
+- A reverse proxy that forwards the `Host` header (Caddy, Cloudflare, etc.) — Next.js trusts the standard headers out of the box
 
 ## Trade-offs and limitations
 
