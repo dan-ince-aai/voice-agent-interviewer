@@ -16,7 +16,7 @@ export async function POST() {
   }
 
   const host = process.env.ASSEMBLYAI_TOKEN_HOST ?? "https://agents.assemblyai.com";
-  const url = new URL("/v3/token", host);
+  const url = new URL("/v1/token", host);
   // 5-minute token; session can run up to 1 hour after connect.
   url.searchParams.set("expires_in_seconds", "300");
   url.searchParams.set("max_session_duration_seconds", "3600");
