@@ -4,7 +4,7 @@ import type { SessionConfig, ToolDefinition } from "./voice-agent-events";
 // Setup form types
 // ----------------------------------------------------------------------------
 
-export type InterviewType = "behavioral" | "technical" | "system_design" | "mixed";
+export type InterviewType = "screening" | "behavioral" | "skills" | "mixed";
 export type Difficulty = "junior" | "mid" | "senior" | "staff";
 
 export interface InterviewSetup {
@@ -16,20 +16,22 @@ export interface InterviewSetup {
   topics: string[];
   durationMinutes: number;
   voice: string;
+  /** Custom greeting; falls back to a generated one when blank. */
+  greeting?: string;
 }
 
 export const INTERVIEW_TYPE_LABELS: Record<InterviewType, string> = {
+  screening: "Screening call",
   behavioral: "Behavioral",
-  technical: "Technical",
-  system_design: "System design",
+  skills: "Skills assessment",
   mixed: "Mixed",
 };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  junior: "Junior (0–2 yrs)",
+  junior: "Entry level (0–2 yrs)",
   mid: "Mid-level (2–5 yrs)",
   senior: "Senior (5–10 yrs)",
-  staff: "Staff+ (10+ yrs)",
+  staff: "Lead / Manager (10+ yrs)",
 };
 
 // Curated voices that work well for interview scenarios.
@@ -43,35 +45,39 @@ export const INTERVIEW_VOICES = [
 ] as const;
 
 export const COMMON_TOPICS: Record<InterviewType, string[]> = {
+  screening: [
+    "Background and experience",
+    "Why you applied",
+    "Salary expectations",
+    "Availability and start date",
+    "Work authorization",
+    "Why you're leaving your current role",
+    "Schedule and shift flexibility",
+  ],
   behavioral: [
-    "Conflict resolution",
-    "Leadership",
-    "Tradeoffs and prioritization",
-    "Failure and learning",
-    "Cross-team collaboration",
-    "Mentorship",
+    "Conflict with a coworker",
+    "Handling a difficult customer",
+    "A time you went above and beyond",
+    "A failure and what you learned",
+    "Working under pressure",
+    "Disagreeing with a manager",
+    "A time you led a team or project",
   ],
-  technical: [
-    "Data structures and algorithms",
-    "API design",
-    "Concurrency and threading",
-    "Debugging strategies",
-    "Code review",
-    "Testing",
-  ],
-  system_design: [
-    "Scalability",
-    "Database design",
-    "Caching strategies",
-    "Distributed systems",
-    "Real-time systems",
-    "Tradeoffs in architecture",
+  skills: [
+    "A typical day in this role",
+    "Most challenging part of this role",
+    "How you'd handle a common scenario",
+    "Tools and systems you use",
+    "Your strongest skill",
+    "An area you want to grow in",
+    "Customer or stakeholder examples",
   ],
   mixed: [
-    "Recent project deep-dive",
-    "Technical decision-making",
-    "Team collaboration",
-    "Problem solving",
+    "A recent accomplishment you're proud of",
+    "Why you'd be a good fit",
+    "Strengths and weaknesses",
+    "Career goals",
+    "A challenging situation you handled",
   ],
 };
 
@@ -203,13 +209,13 @@ export function buildGreeting(setup: InterviewSetup): string {
 function calibrationGuide(difficulty: Difficulty): string {
   switch (difficulty) {
     case "junior":
-      return "- Strong: clear thinking, names the right concepts, asks good clarifying questions.\n- Weak: confused on fundamentals, can't name basic tools, no recovery from mistakes.";
+      return "- Strong: curious, asks clarifying questions, learns from feedback, owns mistakes, clear about why this role.\n- Weak: vague about basics, deflects when uncertain, can't articulate why they applied.";
     case "mid":
-      return "- Strong: structured answers, real examples from production, knows tradeoffs.\n- Weak: handwaves through specifics, no concrete examples, surface-level reasoning.";
+      return "- Strong: concrete examples from real work, knows the tradeoffs in their decisions, takes accountability.\n- Weak: generic answers, no specific examples, blames external factors, can't say what they'd do differently.";
     case "senior":
-      return "- Strong: nuanced tradeoff thinking, concrete production stories, owns past mistakes, system-level thinking.\n- Weak: generic answers, can't tell you why a decision was made, blames others, no scope ownership.";
+      return "- Strong: specific stories with real outcomes, depth in their craft, mentors others, calm under ambiguity.\n- Weak: still answering like an entry-level candidate, no measurable impact, no growth in last few years.";
     case "staff":
-      return "- Strong: org-wide thinking, technical strategy, mentorship stories, comfortable with ambiguity, has shipped through crises.\n- Weak: still talks like an IC, can't articulate impact beyond their team, no strategic perspective.";
+      return "- Strong: big-picture thinking, strategic perspective, comfortable owning ambiguous problems, develops people, has shipped through hard moments.\n- Weak: tactical-only answers, no scope beyond their immediate work, no examples of leading or developing others.";
   }
 }
 
@@ -218,11 +224,13 @@ function calibrationGuide(difficulty: Difficulty): string {
 // ----------------------------------------------------------------------------
 
 export function buildSessionConfig(setup: InterviewSetup): SessionConfig {
+  // Honour a user-provided greeting; fall back to the generated one if blank.
+  const greeting = setup.greeting?.trim() || buildGreeting(setup);
   return {
     system_prompt: buildInterviewerPrompt(setup),
     // The greeting plays automatically when session.ready fires. Set it
     // here (not via reply.create) so the candidate isn't greeted by silence.
-    greeting: buildGreeting(setup),
+    greeting,
     input: {
       type: "audio",
       // Conservative turn detection — interviewers should let candidates think,

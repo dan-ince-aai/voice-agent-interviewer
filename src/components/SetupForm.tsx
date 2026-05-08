@@ -6,6 +6,7 @@ import { ArrowRight, Plus, X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import {
+  buildGreeting,
   COMMON_TOPICS,
   DIFFICULTY_LABELS,
   type Difficulty,
@@ -18,7 +19,7 @@ import {
 const STORAGE_KEY = "voice-agent-interviewer.setup";
 
 const DIFFICULTIES: Difficulty[] = ["junior", "mid", "senior", "staff"];
-const INTERVIEW_TYPES: InterviewType[] = ["behavioral", "technical", "system_design", "mixed"];
+const INTERVIEW_TYPES: InterviewType[] = ["screening", "behavioral", "skills", "mixed"];
 const DURATIONS = [15, 20, 30, 45];
 
 interface FormState {
@@ -30,6 +31,7 @@ interface FormState {
   topics: string[];
   durationMinutes: number;
   voice: string;
+  greeting: string;
 }
 
 const defaultState: FormState = {
@@ -41,6 +43,7 @@ const defaultState: FormState = {
   topics: [],
   durationMinutes: 20,
   voice: "ivy",
+  greeting: "",
 };
 
 export function SetupForm() {
@@ -50,6 +53,31 @@ export function SetupForm() {
   const [submitting, setSubmitting] = useState(false);
 
   const suggestedTopics = useMemo(() => COMMON_TOPICS[form.interviewType], [form.interviewType]);
+
+  // Live preview of the auto-generated greeting — shown as the textarea
+  // placeholder so the user can see what'll be used if they leave it blank.
+  const greetingPreview = useMemo(() => {
+    if (!form.candidateName.trim() || !form.role.trim()) return "";
+    return buildGreeting({
+      candidateName: form.candidateName.trim(),
+      role: form.role.trim(),
+      company: form.company.trim() || undefined,
+      interviewType: form.interviewType,
+      difficulty: form.difficulty,
+      topics: form.topics,
+      durationMinutes: form.durationMinutes,
+      voice: form.voice,
+    });
+  }, [
+    form.candidateName,
+    form.role,
+    form.company,
+    form.interviewType,
+    form.difficulty,
+    form.topics,
+    form.durationMinutes,
+    form.voice,
+  ]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -85,6 +113,7 @@ export function SetupForm() {
       topics: form.topics,
       durationMinutes: form.durationMinutes,
       voice: form.voice,
+      greeting: form.greeting.trim() || undefined,
     };
 
     try {
@@ -113,14 +142,14 @@ export function SetupForm() {
         <Field label="Role" required>
           <Input
             value={form.role}
-            placeholder="Senior Software Engineer"
+            placeholder="Customer Service Representative"
             onChange={(v) => update("role", v)}
           />
         </Field>
         <Field label="Company" hint="optional">
           <Input
             value={form.company}
-            placeholder="ACME Software"
+            placeholder="Acme Health"
             onChange={(v) => update("company", v)}
           />
         </Field>
@@ -259,6 +288,22 @@ export function SetupForm() {
             </ChoicePill>
           ))}
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label hint="optional — what the agent says first">Greeting</Label>
+        <textarea
+          className="focus-ring w-full resize-none rounded-[10px] border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-300"
+          rows={2}
+          value={form.greeting}
+          placeholder={greetingPreview || "Hi {name}, thanks for jumping on…"}
+          onChange={(e) => update("greeting", e.target.value)}
+        />
+        {form.greeting.trim().length === 0 && greetingPreview && (
+          <p className="text-xs text-slate-400">
+            We&apos;ll auto-generate this from the role and candidate name if you leave it blank.
+          </p>
+        )}
       </div>
 
       <button
