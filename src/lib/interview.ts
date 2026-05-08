@@ -79,6 +79,10 @@ export const COMMON_TOPICS: Record<InterviewType, string[]> = {
 // Tool definitions
 // ----------------------------------------------------------------------------
 
+// NOTE: the server validates tool schemas strictly — it rejects extra JSON
+// Schema fields like `enum`, `minimum`, `maximum`, and nested `items`.
+// Keep parameter schemas to bare `type` + `description`, then describe the
+// constraints (allowed values, ranges) in the `description` text instead.
 export const INTERVIEW_TOOLS: ToolDefinition[] = [
   {
     type: "function",
@@ -96,8 +100,6 @@ export const INTERVIEW_TOOLS: ToolDefinition[] = [
           type: "integer",
           description:
             "Rating from 1 to 5. 1 = clearly struggled, 2 = below bar, 3 = met bar, 4 = strong, 5 = exceptional.",
-          minimum: 1,
-          maximum: 5,
         },
         note: {
           type: "string",
@@ -121,18 +123,16 @@ export const INTERVIEW_TOOLS: ToolDefinition[] = [
         },
         key_strengths: {
           type: "array",
-          items: { type: "string" },
-          description: "2–3 bullet-point strengths the candidate demonstrated.",
+          description: "Array of 2–3 bullet-point strengths (each a string).",
         },
         areas_for_improvement: {
           type: "array",
-          items: { type: "string" },
-          description: "2–3 bullet-point areas where the candidate could grow.",
+          description: "Array of 2–3 bullet-point growth areas (each a string).",
         },
         recommendation: {
           type: "string",
-          description: "One of: strong_hire, hire, lean_hire, lean_no_hire, no_hire",
-          enum: ["strong_hire", "hire", "lean_hire", "lean_no_hire", "no_hire"],
+          description:
+            "Exactly one of: strong_hire, hire, lean_hire, lean_no_hire, no_hire.",
         },
       },
       required: ["overall_assessment", "key_strengths", "areas_for_improvement", "recommendation"],
@@ -213,7 +213,9 @@ function calibrationGuide(difficulty: Difficulty): string {
 export function buildSessionConfig(setup: InterviewSetup): SessionConfig {
   return {
     system_prompt: buildInterviewerPrompt(setup),
-    greeting: null, // Let the agent's first turn (driven by the prompt) be the greeting.
+    // Omit `greeting` entirely — the agent's first turn is driven by the
+    // closing line of the prompt. Sending `greeting: null` is rejected by the
+    // server's schema validator.
     input: {
       type: "audio",
       // Conservative turn detection — interviewers should let candidates think,
