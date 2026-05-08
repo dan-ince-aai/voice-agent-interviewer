@@ -190,7 +190,14 @@ When you've covered enough ground (typically 3–5 substantive answers), say som
 # Voice-first
 You're being spoken aloud. Don't use markdown, lists, or anything that wouldn't sound natural read out. Numbers like "10–20" become "ten to twenty".
 
-You're going to greet ${setup.candidateName.split(" ")[0]} now. Greet warmly, mention this is a ${INTERVIEW_TYPE_LABELS[setup.interviewType].toLowerCase()} interview for the ${setup.role} role, and start with a light opener — "tell me a bit about yourself" or "what drew you to apply" — before getting into the topics.`;
+You'll start by greeting the candidate (a short greeting will be played first). Once they respond, ease in with a light opener — "tell me a bit about yourself" or "what drew you to apply" — before getting into the topics.`;
+}
+
+export function buildGreeting(setup: InterviewSetup): string {
+  const firstName = setup.candidateName.split(" ")[0] || "there";
+  const format = INTERVIEW_TYPE_LABELS[setup.interviewType].toLowerCase();
+  const where = setup.company ? ` at ${setup.company}` : "";
+  return `Hi ${firstName}, thanks for jumping on. I'll be running your ${format} interview${where} today for the ${setup.role} role. How are you doing?`;
 }
 
 function calibrationGuide(difficulty: Difficulty): string {
@@ -213,9 +220,9 @@ function calibrationGuide(difficulty: Difficulty): string {
 export function buildSessionConfig(setup: InterviewSetup): SessionConfig {
   return {
     system_prompt: buildInterviewerPrompt(setup),
-    // Omit `greeting` entirely — the agent's first turn is driven by the
-    // closing line of the prompt. Sending `greeting: null` is rejected by the
-    // server's schema validator.
+    // The greeting plays automatically when session.ready fires. Set it
+    // here (not via reply.create) so the candidate isn't greeted by silence.
+    greeting: buildGreeting(setup),
     input: {
       type: "audio",
       // Conservative turn detection — interviewers should let candidates think,
